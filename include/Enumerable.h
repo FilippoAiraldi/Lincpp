@@ -9,7 +9,7 @@ namespace Lincpp
         struct traits<Enumerable<TElement>>
         {
             typedef TElement Element;
-            typedef typename default_container<TElement>::size_type size_type;
+            typedef typename default_container<TElement>::size_type Size;
         };
     } // namespace internal
 
@@ -17,20 +17,17 @@ namespace Lincpp
     struct Enumerable : public Queriable<Enumerable<TElement>>
     {
     public:
-        // these allow to instantiate an Enumerable from another Enumerable
-        typedef TElement value_type;
-        typedef typename default_container<TElement>::const_iterator const_iterator;
         typedef typename default_container<TElement>::size_type size_type;
+        typedef typename default_container<TElement>::const_iterator const_iterator;
 
     public:
         template <typename TSource>
         Enumerable(const TSource &source)
         {
-            // static_assert(std::is_convertible_v<typename TSource::value_type, TElement>, "Input container must contain TElement as value type, or at least something convertible to it.");
-            static_assert(std::is_same_v<typename TSource::value_type, TElement>, "Input container must contain TElement as value type.");
-
+            CHECK_SOURCE_CONTENT(TSource, TElement);
             if constexpr (std::is_base_of_v<Queriable<TSource>, TSource>)
             {
+                // CHECK_ENUMERABLE_CONTENT(TSource, TElement);
                 size_type L = source.Count();
                 this->data.reserve(L);
                 for (size_type i = 0; i < L; ++i)
@@ -38,9 +35,7 @@ namespace Lincpp
             }
             else
             {
-                // auto begin = source.cbegin();
-                // auto end = source.cend();
-                // this->data.reserve(std::distance(begin, end));
+                // CHECK_CONTAINER_CONTENT(TSource, TElement);
                 this->data.reserve(source.size());
                 std::copy(source.begin(), source.end(), std::back_inserter(this->data));
             }

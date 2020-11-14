@@ -9,7 +9,7 @@ namespace Lincpp
         struct traits<SelectClause<TElement, TSource, TFunc, TReturn>>
         {
             typedef TReturn Element;
-            typedef typename default_container<TReturn>::size_type size_type;
+            typedef typename default_container<TReturn>::size_type Size;
         };
     } // namespace internal
 
@@ -17,17 +17,15 @@ namespace Lincpp
     struct SelectClause : public Queriable<SelectClause<TElement, TSource, TFunc, TReturn>>
     {
     public:
-        // these allow to instantiate an Enumerable from another a SelectClause
-        typedef TReturn value_type;
         typedef typename TSource::size_type size_type;
 
     public:
         SelectClause(TSource source, TFunc selector) : range(source), func(selector)
         {
-            static_assert(std::is_base_of_v<Queriable<TSource>, TSource>, "Clause can only quey from Lincpp classes.");
-            static_assert(std::is_invocable_v<TFunc, TElement>, "Clause selector function must be invocable with TElement as argument.");
-            static_assert(std::is_same_v<typename TSource::value_type, TElement>, "Clause TSource must contain TElement as value type.");
-            static_assert(std::is_same_v<typename std::result_of<TFunc(const TElement &)>::type, TReturn>, "Clause select function must have TResource as return type.");
+            CHECK_LINCPP_QUERIABLE(TSource);
+            // CHECK_CONTAINER_CONTENT(TSource, TElement);
+            CHECK_SOURCE_CONTENT(TSource, TElement);
+            CHECK_FUNC(TFunc, TElement, TReturn);
         }
 
     public:
