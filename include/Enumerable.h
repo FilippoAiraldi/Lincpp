@@ -5,67 +5,74 @@ namespace Lincpp
     namespace internal
     {
         // traits info specialization for Enumerable
-        template <typename TSource, typename TElement, typename TIterator>
-        struct traits<Enumerable<TSource, TElement, TIterator>>
+        template <typename TElement>
+        struct traits<Enumerable<TElement>>
         {
-            typedef TSource Source;
             typedef TElement Element;
-            typedef TIterator Iterator;
+            typedef typename default_container<TElement>::size_type size_type;
         };
     } // namespace internal
 
-    // Enumerable class
-    template <typename TSource, typename TElement = typename TSource::value_type, typename TIterator = typename TSource::const_iterator>
-    struct Enumerable : public internal::Query<Enumerable<TSource, TElement, TIterator>>
+    template <typename TElement>
+    struct Enumerable : public Queriable<Enumerable<TElement>>
     {
     public:
-        Enumerable(const TSource &source) : begin(source.cbegin()), end(source.cend()), data_copied(false) {}
+        // these allow to instantiate an Enumerable from another Enumerable
+        typedef TElement value_type;
+        typedef typename default_container<TElement>::const_iterator const_iterator;
+        typedef typename default_container<TElement>::size_type size_type;
 
     public:
-        typename TSource::size_type Count() const { return std::distance(begin, end); }
-
-        const TElement &ElementAt(typename TSource::size_type i)
+        template <typename TSource>
+        Enumerable(const TSource &source)
         {
-            if (this->data_copied)
-                return this->data.at(i);
+            // static_assert(std::is_convertible_v<typename TSource::value_type, TElement>, "Input container must contain TElement as value type, or at least something convertible to it.");
+            static_assert(std::is_same_v<typename TSource::value_type, TElement>, "Input container must contain TElement as value type.");
 
-            if (i >= this->Count())
-                throw std::out_of_range("index out of range");
-
-            TIterator it = this->begin;
-            while (i > 0)
+            if constexpr (std::is_base_of_v<Queriable<TSource>, TSource>)
             {
-                ++it;
-                i--;
+                size_type L = source.Count();
+                this->data.reserve(L);
+                for (size_type i = 0; i < L; ++i)
+                    this->data.push_back(source.ElementAt(i));
             }
-            return *it;
+            else
+            {
+                // auto begin = source.cbegin();
+                // auto end = source.cend();
+                // this->data.reserve(std::distance(begin, end));
+                this->data.reserve(source.size());
+                std::copy(source.begin(), source.end(), std::back_inserter(this->data));
+            }
         }
 
-    private:
-        TIterator begin;
-        TIterator end;
-        typename internal::container<TElement> data;
-        bool data_copied;
-
-        // void copyData()
-        // {
-        //     for (auto it = source.cbegin(); it != source.cend(); it++)
-        //         this->data.push_back(*it);
-        // }
+        Enumerable(std::initializer_list<TElement> &&list)
+        {
+            this->data.reserve(list.size());
+            std::move(list.begin(), list.end(), std::back_inserter(this->data));
+        }
 
     public:
-        // these allow to write instantiate an Enumerable from another one
-        typedef TElement value_type;
-        typedef typename internal::container<TElement>::const_iterator const_iterator;
-        typedef typename internal::container<TElement>::size_type size_type;
+        size_type Count() const { return this->data.size(); }
+        TElement &ElementAt(size_type i) { return this->data.at(i); }
+        const TElement &ElementAt(size_type i) const { return this->data.at(i); }
 
-        const_iterator cbegin() const { return this->data_copied ? this->data.cbegin() : this->begin; }
-        const_iterator cend() const { return this->data_copied ? this->data.cend() : this->end; }
+        const_iterator cbegin() const { return this->data.cbegin(); }
+        const_iterator cend() const { return this->data.cend(); }
+
+    private:
+        default_container<TElement> data;
     };
 
-    template <typename T>
-    static Enumerable<T> From(const T &source)
+    template <typename TSource, typename TElement = typename TSource::value_type>
+    static Enumerable<TElement> From(const TSource &source)
     {
-        return Enumerable<T>(source);
+        return Enumerable<TElement>(source);
+    }
+
+    template <typename TElement>
+    static Enumerable<TElement> From(std::initializer_list<TElement> &&list)
+    {
+        return Enumerable<TElement>(std::forward<std::initializer_list<TElement>>(list));
     }
 } // namespace Lincpp
