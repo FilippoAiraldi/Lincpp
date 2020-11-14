@@ -1,11 +1,5 @@
 #pragma once
 
-/* #define CHECK_CONTAINER_CONTENT(source, element) \
-    static_assert(std::is_same_v<typename source::value_type, element>, "source does not have the given element type as value type.");
-
-#define CHECK_ENUMERABLE_CONTENT(source, element) \
-    static_assert(std::is_same_v<typename internal::traits<source>::Element, element>, "source does not have the given element type as value type."); */
-
 #define CHECK_SOURCE_CONTENT(source, element)                                                                                                                 \
     do                                                                                                                                                        \
     {                                                                                                                                                         \
@@ -18,6 +12,9 @@
             static_assert(std::is_same_v<typename source::value_type, element>, "source does not have the given element type as value type.");                \
         }                                                                                                                                                     \
     } while (false)
+
+#define CHECK_ITERATOR_TYPE(iterator, element) \
+    static_assert(std::is_same_v<typename std::iterator_traits<iterator>::value_type, element>, "iterator does not point to the given element type.");
 
 #define CHECK_LINCPP_QUERIABLE(class) \
     static_assert(std::is_base_of_v<Queriable<class>, class>, "can only perform queries on Lincpp classes.");

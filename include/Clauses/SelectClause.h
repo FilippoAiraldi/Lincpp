@@ -18,12 +18,12 @@ namespace Lincpp
     {
     public:
         typedef typename TSource::size_type size_type;
+        // friend struct Queriable<SelectClause<TElement, TSource, TFunc, TReturn>>;
 
     public:
         SelectClause(TSource source, TFunc selector) : range(source), func(selector)
         {
             CHECK_LINCPP_QUERIABLE(TSource);
-            // CHECK_CONTAINER_CONTENT(TSource, TElement);
             CHECK_SOURCE_CONTENT(TSource, TElement);
             CHECK_FUNC(TFunc, TElement, TReturn);
         }

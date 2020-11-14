@@ -19,36 +19,35 @@ namespace Lincpp
     public:
         typedef typename default_container<TElement>::size_type size_type;
         typedef typename default_container<TElement>::const_iterator const_iterator;
+        friend struct Queriable<Enumerable<TElement>>;
 
     public:
-        template <typename TSource>
-        Enumerable(const TSource &source)
+        template <typename TIterator>
+        Enumerable(TIterator begin, TIterator end)
         {
-            CHECK_SOURCE_CONTENT(TSource, TElement);
-            if constexpr (std::is_base_of_v<Queriable<TSource>, TSource>)
-            {
-                // CHECK_ENUMERABLE_CONTENT(TSource, TElement);
-                size_type L = source.Count();
-                this->data.reserve(L);
-                for (size_type i = 0; i < L; ++i)
-                    this->data.push_back(source.ElementAt(i));
-            }
-            else
-            {
-                // CHECK_CONTAINER_CONTENT(TSource, TElement);
-                this->data.reserve(source.size());
-                std::copy(source.begin(), source.end(), std::back_inserter(this->data));
-            }
+            CHECK_ITERATOR_TYPE(TIterator, TElement);
+            this->data.reserve(std::distance(begin, end));
+            std::copy(begin, end, std::back_inserter(this->data));
         }
 
-        Enumerable(std::initializer_list<TElement> &&list)
+        Enumerable(std::initializer_list<TElement> &&list) : Enumerable(list.begin(), list.end()) {}
+
+        template <typename TSource>
+        Enumerable(const TSource &source) : Enumerable(source.begin(), source.end()) {}
+
+        template <typename TEnumerable>
+        Enumerable(const TEnumerable &source) requires(std::is_base_of_v<Queriable<TEnumerable>, TEnumerable>)
         {
-            this->data.reserve(list.size());
-            std::move(list.begin(), list.end(), std::back_inserter(this->data));
+            CHECK_SOURCE_CONTENT(TEnumerable, TElement);
+            size_type L = source.Count();
+            this->data.reserve(L);
+            for (size_type i = 0; i < L; ++i)
+                this->data.push_back(source.ElementAt(i));
         }
 
     public:
         size_type Count() const { return this->data.size(); }
+
         TElement &ElementAt(size_type i) { return this->data.at(i); }
         const TElement &ElementAt(size_type i) const { return this->data.at(i); }
 
@@ -56,6 +55,7 @@ namespace Lincpp
         const_iterator cend() const { return this->data.cend(); }
 
     private:
+        Enumerable() = default;
         default_container<TElement> data;
     };
 
@@ -63,6 +63,18 @@ namespace Lincpp
     static Enumerable<TElement> From(const TSource &source)
     {
         return Enumerable<TElement>(source);
+    }
+
+    template <typename TElement>
+    static Enumerable<TElement> From(TElement *source, std::size_t n)
+    {
+        return Enumerable<TElement>(source, source + n);
+    }
+
+    template <typename TIterator, typename TElement = typename std::iterator_traits<TIterator>::value_type>
+    static Enumerable<TElement> From(TIterator begin, TIterator end)
+    {
+        return Enumerable<TElement>(begin, end);
     }
 
     template <typename TElement>

@@ -1,8 +1,11 @@
 #pragma once
 
 #include <stdexcept>
-#include <vector>
 #include <type_traits>
+#include <vector>
+#include <list>
+#include <memory>
+#include <iterator>
 
 #include "util/ForwardDeclarations.h"
 #include "util/Macros.h"
