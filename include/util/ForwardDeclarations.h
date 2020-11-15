@@ -7,8 +7,6 @@ namespace Lincpp
         // structure whose specializations contains type infos on classes that provide one
         template <typename T>
         struct traits;
-
-
     } // namespace internal
 
     // base container type for an Enumerable. Can be easily changed from here. Vector's reserve method usages must be deleted if changed
