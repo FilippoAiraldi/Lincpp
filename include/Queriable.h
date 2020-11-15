@@ -38,12 +38,12 @@ namespace Lincpp
         inline bool Any() const { return this->derived().Size() != 0; }
 
         // TODO: make this a clause
-        Enumerable<TElement> Append(const TElement &element) const
-        {
-            std::list<TElement> tmp = this->ToList();
-            tmp.push_back(element);
-            return Enumerable<TElement>(tmp);
-        }
+        // Enumerable<TElement> Append(const TElement &element) const
+        // {
+        //     std::list<TElement> tmp = this->ToList();
+        //     tmp.push_back(element);
+        //     return Enumerable<TElement>(tmp);
+        // }
 
         double Average() const requires internal::Averageable<TElement>
         {
@@ -70,18 +70,18 @@ namespace Lincpp
         // TODO: Cast
 
         // TODO: make this a clause
-        Enumerable<TElement> Concat(const Enumerable<TElement> &other) const
-        {
-            TSize L1 = this->Size();
-            TSize L2 = other.Size();
-            Enumerable<TElement> res;
-            res.data.reserve(L1 + L2);
-            for (TSize i = 0; i < L1; ++i)
-                res.data.push_back(this->ElementAt(i));
-            for (TSize i = 0; i < L2; ++i)
-                res.data.push_back(other.ElementAt(i));
-            return res;
-        }
+        // Enumerable<TElement> Concat(const Enumerable<TElement> &other) const
+        // {
+        //     TSize L1 = this->Size();
+        //     TSize L2 = other.Size();
+        //     Enumerable<TElement> res;
+        //     res.data.reserve(L1 + L2);
+        //     for (TSize i = 0; i < L1; ++i)
+        //         res.data.push_back(this->ElementAt(i));
+        //     for (TSize i = 0; i < L2; ++i)
+        //         res.data.push_back(other.ElementAt(i));
+        //     return res;
+        // }
 
         template <typename TPredicate>
         TSize Count(TPredicate predicate) const
@@ -104,21 +104,21 @@ namespace Lincpp
         inline bool Empty() const { return !this->Any(); }
 
         // TODO: make this a clause
-        Enumerable<TElement> DefaultIfEmpty(TElement defaultValue) const
-        {
-            Enumerable<TElement> res;
-            TSize L = this->Count();
-            if (L != 0)
-            {
-                res.data.reserve(L);
-                for (TSize i = 0; i < L; ++i)
-                    res.data.push_back(this->ElementAt(i));
-            }
-            else
-                res.data.push_back(defaultValue);
+        // Enumerable<TElement> DefaultIfEmpty(TElement defaultValue) const
+        // {
+        //     Enumerable<TElement> res;
+        //     TSize L = this->Count();
+        //     if (L != 0)
+        //     {
+        //         res.data.reserve(L);
+        //         for (TSize i = 0; i < L; ++i)
+        //             res.data.push_back(this->ElementAt(i));
+        //     }
+        //     else
+        //         res.data.push_back(defaultValue);
 
-            return res;
-        }
+        //     return res;
+        // }
 
         template <typename TFunc, typename TReturn = typename std::result_of_t<TFunc(const TElement &)>>
         SelectClause<TElement, Derived, TFunc, TReturn> Select(TFunc selector) const
@@ -156,6 +156,6 @@ namespace Lincpp
     public:
         // methods that all derived structs must implement
         inline TSize Size() const { return this->derived().Size(); }
-        inline const TElement ElementAt(TSize i) const { return this->derived().ElementAt(i); }
+        inline TElement ElementAt(TSize i) const { return this->derived().ElementAt(i); }
     };
 } // namespace Lincpp
