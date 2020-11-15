@@ -23,13 +23,13 @@ namespace Lincpp
     public:
         SelectClause(TSource source, TFunc selector) : range(source), func(selector)
         {
-            CHECK_LINCPP_QUERIABLE(TSource);
+            CHECK_QUERIABLE_BASE(TSource);
             CHECK_SOURCE_CONTENT(TSource, TElement);
             CHECK_FUNC(TFunc, TElement, TReturn);
         }
 
     public:
-        size_type Count() const { return this->range.Count(); }
+        size_type Size() const { return this->range.Size(); }
         const TReturn ElementAt(size_type i) const { return this->func(this->range.ElementAt(i)); }
 
     private:

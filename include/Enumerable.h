@@ -27,7 +27,7 @@ namespace Lincpp
         {
             CHECK_ITERATOR_TYPE(TIterator, TElement);
             this->data.reserve(std::distance(begin, end));
-            std::copy(begin, end, std::back_inserter(this->data));
+            std::copy(default_execution_policy, begin, end, std::back_inserter(this->data));
         }
 
         Enumerable(std::initializer_list<TElement> &&list) : Enumerable(list.begin(), list.end()) {}
@@ -39,14 +39,14 @@ namespace Lincpp
         Enumerable(const TEnumerable &source) requires(std::is_base_of_v<Queriable<TEnumerable>, TEnumerable>)
         {
             CHECK_SOURCE_CONTENT(TEnumerable, TElement);
-            size_type L = source.Count();
+            size_type L = source.Size();
             this->data.reserve(L);
             for (size_type i = 0; i < L; ++i)
                 this->data.push_back(source.ElementAt(i));
         }
 
     public:
-        size_type Count() const { return this->data.size(); }
+        size_type Size() const { return this->data.size(); }
 
         TElement &ElementAt(size_type i) { return this->data.at(i); }
         const TElement &ElementAt(size_type i) const { return this->data.at(i); }
@@ -60,26 +60,21 @@ namespace Lincpp
     };
 
     template <typename TSource, typename TElement = typename TSource::value_type>
-    static Enumerable<TElement> From(const TSource &source)
-    {
-        return Enumerable<TElement>(source);
-    }
-
+    static Enumerable<TElement> From(const TSource &source) { return Enumerable<TElement>(source); }
     template <typename TElement>
-    static Enumerable<TElement> From(TElement *source, std::size_t n)
-    {
-        return Enumerable<TElement>(source, source + n);
-    }
-
+    static Enumerable<TElement> From(TElement *source, std::size_t n) { return Enumerable<TElement>(source, source + n); }
     template <typename TIterator, typename TElement = typename std::iterator_traits<TIterator>::value_type>
-    static Enumerable<TElement> From(TIterator begin, TIterator end)
-    {
-        return Enumerable<TElement>(begin, end);
-    }
-
+    static Enumerable<TElement> From(TIterator begin, TIterator end) { return Enumerable<TElement>(begin, end); }
     template <typename TElement>
-    static Enumerable<TElement> From(std::initializer_list<TElement> &&list)
-    {
-        return Enumerable<TElement>(std::forward<std::initializer_list<TElement>>(list));
-    }
+    static Enumerable<TElement> From(std::initializer_list<TElement> &&list) { return Enumerable<TElement>(std::forward<std::initializer_list<TElement>>(list)); }
+
+    // template <typename TSource, typename TElement = typename TSource::value_type>
+    // static int FromTest(TSource const &source) { return 1; } //  for values
+    // template <typename TSource, typename TElement = typename TSource::value_type>
+    // static int FromTest(TSource &source) { return 2; } // for references
+
+    template <typename TSource, typename TElement = typename TSource::value_type>
+    static int FromTest(const TSource &&source) { return 1; } // for values
+    template <typename TSource, typename TElement = typename TSource::value_type>
+    static int FromTest(const TSource &source) { return 2; } // for references
 } // namespace Lincpp

@@ -5,31 +5,22 @@ namespace Lincpp
     template <typename Derived>
     struct Queriable
     {
-    public:
-        enum class CastType : unsigned char
-        {
-            Static,
-            Dynamic,
-            Reinterpreted
-        };
-
     private:
         typedef typename internal::traits<Derived>::Element TElement;
         typedef typename internal::traits<Derived>::Size TSize;
 
     protected:
-        Derived &derived() { return *static_cast<Derived *>(this); }
-        const Derived &derived() const { return *static_cast<const Derived *>(this); }
+        inline Derived &derived() { return *static_cast<Derived *>(this); }
+        inline const Derived &derived() const { return *static_cast<const Derived *>(this); }
 
     public:
         template <typename TPredicate>
         bool All(TPredicate predicate) const
         {
             CHECK_PREDICATE(TPredicate, TElement);
-            Derived derived = this->derived();
-            TSize L = derived.Count();
+            TSize L = this->Size();
             for (TSize i = 0; i < L; ++i)
-                if (!predicate(derived.ElementAt(i)))
+                if (!predicate(this->ElementAt(i)))
                     return false;
             return true;
         }
@@ -38,44 +29,96 @@ namespace Lincpp
         bool Any(TPredicate predicate) const
         {
             CHECK_PREDICATE(TPredicate, TElement);
-            Derived derived = this->derived();
-            TSize L = derived.Count();
+            TSize L = this->Size();
             for (TSize i = 0; i < L; ++i)
-                if (predicate(derived.ElementAt(i)))
+                if (predicate(this->ElementAt(i)))
                     return true;
             return false;
         }
-        bool Any() const { return this->derived().Count() != 0; }
+        inline bool Any() const { return this->derived().Size() != 0; }
 
-        Enumerable<TElement> Append(TElement element) const
+        // TODO: make this a clause
+        Enumerable<TElement> Append(const TElement &element) const
         {
             std::list<TElement> tmp = this->ToList();
             tmp.push_back(element);
             return Enumerable<TElement>(tmp);
         }
 
-        // TODO: Average
+        double Average() const requires internal::Averageable<TElement>
+        {
+            TSize L = this->Size();
+            if (L == 0)
+                throw std::range_error("sequence contains no element.");
 
-        // template <typename TOtherElement, CastType Type>
-        // Enumerable<TOtherElement> Cast();
-        // // {
-        // //     std::list<TElement> tmp = this->ToList();
-        // //     Enumerable
-        // // }
+            if constexpr (std::is_integral_v<TElement> || std::is_floating_point_v<TElement>)
+            {
+                double avg = this->ElementAt(0);
+                for (TSize i = 1; i < L; ++i)
+                    avg = (avg * (double)i + this->ElementAt(i)) / (double)(i + 1);
+                return avg;
+            }
+            else
+            {
+                TElement tot = this->ElementAt(0);
+                for (TSize i = 1; i < L; ++i)
+                    tot = tot + ElementAt(i);
+                return tot / L;
+            }
+        }
 
-        // template <typename TOtherElement>
-        // Enumerable<TOtherElement> Cast<TOtherElement, CastType::Dynamic>()
-        // {
-        //     std::unique_ptr<TElement[]> tmp = this->ToArray();
+        // TODO: Cast
 
-        // }
+        // TODO: make this a clause
+        Enumerable<TElement> Concat(const Enumerable<TElement> &other) const
+        {
+            TSize L1 = this->Size();
+            TSize L2 = other.Size();
+            Enumerable<TElement> res;
+            res.data.reserve(L1 + L2);
+            for (TSize i = 0; i < L1; ++i)
+                res.data.push_back(this->ElementAt(i));
+            for (TSize i = 0; i < L2; ++i)
+                res.data.push_back(other.ElementAt(i));
+            return res;
+        }
+
+        template <typename TPredicate>
+        TSize Count(TPredicate predicate) const
+        {
+            CHECK_PREDICATE(TPredicate, TElement);
+            TSize cnt = 0;
+            TSize L = this->Count();
+            for (TSize i = 0; i < L; ++i)
+                if (predicate(this->ElementAt(i)))
+                    ++cnt;
+            return cnt;
+        }
+        inline TSize Count() const { return this->Size(); }
 
         template <typename TPredicate>
         bool Empty(TPredicate predicate) const
         {
             return !this->Any<TPredicate>(predicate);
         }
-        bool Empty() const { return !this->Any(); }
+        inline bool Empty() const { return !this->Any(); }
+
+        // TODO: make this a clause
+        Enumerable<TElement> DefaultIfEmpty(TElement defaultValue) const
+        {
+            Enumerable<TElement> res;
+            TSize L = this->Count();
+            if (L != 0)
+            {
+                res.data.reserve(L);
+                for (TSize i = 0; i < L; ++i)
+                    res.data.push_back(this->ElementAt(i));
+            }
+            else
+                res.data.push_back(defaultValue);
+
+            return res;
+        }
 
         template <typename TFunc, typename TReturn = typename std::result_of_t<TFunc(const TElement &)>>
         SelectClause<TElement, Derived, TFunc, TReturn> Select(TFunc selector) const
@@ -85,37 +128,34 @@ namespace Lincpp
 
         std::unique_ptr<TElement[]> ToArray() const
         {
-            Derived derived = this->derived();
-            TSize L = derived.Count();
+            TSize L = this->Size();
             auto p = std::make_unique<TElement[]>(L);
             for (TSize i = 0; i < L; ++i)
-                p[i] = derived.ElementAt(i);
+                p[i] = this->ElementAt(i);
             return p;
         }
 
         std::list<TElement> ToList() const
         {
             std::list<TElement> l;
-            Derived derived = this->derived();
-            TSize L = derived.Count();
+            TSize L = this->Size();
             for (TSize i = 0; i < L; ++i)
-                l.push_back(derived.ElementAt(i));
+                l.push_back(this->ElementAt(i));
             return l;
         }
 
         std::vector<TElement> ToVector() const
         {
-            Derived derived = this->derived();
-            TSize L = derived.Count();
+            TSize L = this->Size();
             std::vector<TElement> v(L);
             for (TSize i = 0; i < L; ++i)
-                v[i] = derived.ElementAt(i);
+                v[i] = this->ElementAt(i);
             return v;
         }
 
     public:
         // methods that all derived structs must implement
-        TSize Count() const { return this->derived().Count(); }
-        const TElement ElementAt(TSize i) const { return this->derived().ElementAt(i); }
+        inline TSize Size() const { return this->derived().Size(); }
+        inline const TElement ElementAt(TSize i) const { return this->derived().ElementAt(i); }
     };
 } // namespace Lincpp

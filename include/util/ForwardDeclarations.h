@@ -12,7 +12,10 @@ namespace Lincpp
     // base container type for an Enumerable. Can be easily changed from here. Vector's reserve method usages must be deleted if changed
     template <typename T>
     using default_container = std::vector<T>;
-    // TODO: make the default container smart, if the element it contains are big -> list, if small -> vector. Any advantages?
+    // TODO: make the default container smart.
+    // If the element it contains are big -> list, if small -> vector. Any advantages?
+
+    constexpr auto default_execution_policy = std::execution::par;
 
     template <typename Derived>
     struct Queriable;
