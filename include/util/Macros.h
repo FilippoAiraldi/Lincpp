@@ -1,16 +1,23 @@
 #pragma once
 
-#define CHECK_SOURCE_CONTENT(source, element)                                                                                                                     \
-    do                                                                                                                                                            \
-    {                                                                                                                                                             \
-        if constexpr (std::is_base_of_v<Queriable<source>, source>)                                                                                               \
-        {                                                                                                                                                         \
-            static_assert(std::is_same_v<typename internal::traits<source>::Element, element>, "source does not have the specified element type as value type."); \
-        }                                                                                                                                                         \
-        else                                                                                                                                                      \
-        {                                                                                                                                                         \
-            static_assert(std::is_same_v<typename source::value_type, element>, "source does not have the specified element type as value type.");                \
-        }                                                                                                                                                         \
+#define CHECK_SOURCE_CONTENT(source, element, allowConversion)                                                                                                                                            \
+    do                                                                                                                                                                                                    \
+    {                                                                                                                                                                                                     \
+        if constexpr (std::is_base_of_v<Queriable<source>, source>)                                                                                                                                       \
+        {                                                                                                                                                                                                 \
+            if constexpr (allowConversion)                                                                                                                                                               \
+            {                                                                                                                                                                                             \
+                static_assert(std::is_convertible_v<typename internal::traits<source>::Element, element>, "source does not have the specified element type as value type, nor it is convertible to it."); \
+            }                                                                                                                                                                                             \
+            else                                                                                                                                                                                          \
+            {                                                                                                                                                                                             \
+                static_assert(std::is_same_v<typename internal::traits<source>::Element, element>, "source does not have the specified element type as value type.");                                     \
+            }                                                                                                                                                                                             \
+        }                                                                                                                                                                                                 \
+        else                                                                                                                                                                                              \
+        {                                                                                                                                                                                                 \
+            static_assert(std::is_same_v<typename source::value_type, element>, "source does not have the specified element type as value type.");                                                        \
+        }                                                                                                                                                                                                 \
     } while (false)
 
 #define CHECK_ITERATOR_TYPE(iterator, element) \

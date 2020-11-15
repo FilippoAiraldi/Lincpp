@@ -4,12 +4,10 @@ namespace Lincpp
 {
     namespace internal
     {
-        // traits info specialization for Enumerable
         template <typename TElement, typename TIterator>
         struct traits<Enumerable<TElement, TIterator>>
         {
             typedef TElement Element;
-            // typedef TIterator ITerator;
             typedef typename default_container<TElement>::size_type Size;
         };
     } // namespace internal
@@ -19,7 +17,6 @@ namespace Lincpp
     {
     public:
         typedef typename default_container<TElement>::size_type size_type;
-        // friend struct Queriable<Enumerable<TElement, TIterator>>;
 
     public:
         // 1: Constructs an Enumerable from a temporary initializer list, copies data
@@ -34,7 +31,7 @@ namespace Lincpp
         template <typename TSource>
         Enumerable(const TSource &&source) requires(!internal::LincppEnumerable<TSource>) : is_data_copied(true)
         {
-            CHECK_SOURCE_CONTENT(TSource, TElement);
+            CHECK_SOURCE_CONTENT(TSource, TElement, true);
             CHECK_ITERATOR_TYPE(TIterator, TElement);
             this->data.reserve(std::distance(source.begin(), source.end()));
             std::move(internal::default_execution_policy, source.begin(), source.end(), std::back_inserter(this->data));
@@ -44,19 +41,17 @@ namespace Lincpp
         template <typename TEnumerable>
         Enumerable(const TEnumerable &source) requires internal::LincppEnumerable<TEnumerable> : is_data_copied(true)
         {
-            CHECK_SOURCE_CONTENT(TEnumerable, TElement);
+            CHECK_SOURCE_CONTENT(TEnumerable, TElement, true);
             CHECK_ITERATOR_TYPE(TIterator, TElement);
-            size_type L = source.Size();
-            this->data.reserve(L);
-            for (size_type i = 0; i < L; ++i)
-                this->data.push_back(source.ElementAt(i));
+            source.RequestCopyOriginalData();
+            this->CopyFromEnumerableParallelizable(&source, this);
         }
 
         // 5: Constructs an Enumerable from a non-temporary source, can choose to copy data or just iterators
         template <typename TSource>
         Enumerable(const TSource &source, bool forceCopy) requires(!internal::LincppEnumerable<TSource>) : is_data_copied(forceCopy)
         {
-            CHECK_SOURCE_CONTENT(TSource, TElement);
+            CHECK_SOURCE_CONTENT(TSource, TElement, true);
             CHECK_ITERATOR_TYPE(TIterator, TElement);
             if (forceCopy)
             {
@@ -87,8 +82,6 @@ namespace Lincpp
         }
 
     public:
-        inline size_type Size() const { return this->is_data_copied ? this->data.size() : std::distance(this->begin, this->end); }
-
         inline const TElement &ElementAt(size_type i) const
         {
             if (!this->is_data_copied)
@@ -110,16 +103,45 @@ namespace Lincpp
         inline TIterator cbegin() const { return this->is_data_copied ? this->data.cbegin() : this->begin; }
         inline TIterator cend() const { return this->is_data_copied ? this->data.cend() : this->end; }
 
-        // TODO inline Enumerable<TElement, TIterator> Clone() const { return Enumerable<TElement, TIterator>(*this, true); }
+        inline size_type Size() const { return this->is_data_copied ? this->data.size() : std::distance(this->begin, this->end); }
+        inline Enumerable<TElement, TIterator> Clone() const { return Enumerable<TElement, TIterator>(*this, this->is_data_copied); }
+
+        void RequestCopyOriginalData()
+        {
+            if (this->is_data_copied)
+                return;
+            this->is_data_copied = true;
+            this->data.reserve(std::distance(this->begin, this->end));
+            std::copy(internal::default_execution_policy, this->begin, this->end, std::back_inserter(this->data));
+        }
+
+    private:
+        TIterator begin;
+        TIterator end;
+        default_container<TElement> data;
+        bool is_data_copied;
 
     private:
         Enumerable() = default;
         Enumerable(const Enumerable<TElement, TIterator> &) = delete;
 
-        TIterator begin;
-        TIterator end;
-        default_container<TElement> data;
-        bool is_data_copied;
+        template <typename TEnumerable>
+        static void CopyFromEnumerableParallelizable(const TEnumerable *source, Enumerable<TElement, TIterator> *dst)
+        {
+            size_type L = source->Size();
+
+#ifndef LINCPP_PARALLEL_DISABLE
+            if (L > internal::parallel_threshold_size)
+            {
+                dst->data.resize(L);
+                internal::ParallelFor(0, L, [dst, source](size_type i) { dst->data.at(i) = source->ElementAt(i); });
+                return;
+            }
+#endif
+            dst->data.reserve(L);
+            for (size_type i = 0; i < L; ++i)
+                dst->data.push_back(source->ElementAt(i));
+        };
     }; // namespace Lincpp
 
     // 1: Constructs an Enumerable from a temporary initializer list, copies data

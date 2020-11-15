@@ -8,7 +8,7 @@ namespace Lincpp
         template <typename T>
         struct traits;
 
-        constexpr auto default_execution_policy = std::execution::par;
+
     } // namespace internal
 
     // base container type for an Enumerable. Can be easily changed from here. Vector's reserve method usages must be deleted if changed
@@ -22,6 +22,9 @@ namespace Lincpp
 
     template <typename TElement, typename TIterator>
     struct Enumerable;
+
+    template <typename TElement, typename TSource, typename TReturn>
+    struct CastClause;
 
     template <typename TElement, typename TSource, typename TFunc, typename TReturn>
     struct SelectClause;

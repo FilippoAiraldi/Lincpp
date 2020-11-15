@@ -121,13 +121,14 @@ namespace Lincpp
         // }
 
         template <typename TFunc, typename TReturn = typename std::result_of_t<TFunc(const TElement &)>>
-        SelectClause<TElement, Derived, TFunc, TReturn> Select(TFunc selector) const
+        SelectClause<TElement, Derived, TFunc, TReturn> Select(TFunc selector)
         {
             return SelectClause<TElement, Derived, TFunc, TReturn>(this->derived(), selector);
         }
 
         std::unique_ptr<TElement[]> ToArray() const
         {
+            this->RequestCopyOriginalData();
             TSize L = this->Size();
             auto p = std::make_unique<TElement[]>(L);
             for (TSize i = 0; i < L; ++i)
@@ -137,6 +138,7 @@ namespace Lincpp
 
         std::list<TElement> ToList() const
         {
+            this->RequestCopyOriginalData();
             std::list<TElement> l;
             TSize L = this->Size();
             for (TSize i = 0; i < L; ++i)
@@ -146,6 +148,7 @@ namespace Lincpp
 
         std::vector<TElement> ToVector() const
         {
+            this->RequestCopyOriginalData();
             TSize L = this->Size();
             std::vector<TElement> v(L);
             for (TSize i = 0; i < L; ++i)
@@ -157,5 +160,7 @@ namespace Lincpp
         // methods that all derived structs must implement
         inline TSize Size() const { return this->derived().Size(); }
         inline TElement ElementAt(TSize i) const { return this->derived().ElementAt(i); }
+
+        inline void RequestCopyOriginalData() const { return this->derived().RequestCopyOriginalData(); }
     };
 } // namespace Lincpp
