@@ -13,8 +13,9 @@
 #include "util/Constants.h"
 #include "util/Macros.h"
 #include "util/Concepts.h"
-
+#ifndef LINCPP_PARALLEL_DISABLE
 #include "util/ParallelFor.h"
+#endif
 
 #include "Enumerable.h"
 
