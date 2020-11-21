@@ -1,25 +1,29 @@
 #pragma once
 
-#include <stdexcept>
-#include <type_traits>
-#include <vector>
-#include <list>
-#include <memory>
+//#include <stdexcept>
+//#include <type_traits>
+//#include <memory>
+//#include <iterator>
+//#include <algorithm>
+// #include <execution>
+
 #include <iterator>
-#include <algorithm>
-#include <execution>
+#include <initializer_list>
 
-#include "util/ForwardDeclarations.h"
-#include "util/Constants.h"
-#include "util/Macros.h"
-#include "util/Concepts.h"
-#ifndef LINCPP_PARALLEL_DISABLE
-#include "util/ParallelFor.h"
-#endif
+#include "defs/ForwardDeclarations.h"
+#include "defs/Constants.h"
+#include "defs/Macros.h"
+#include "defs/Concepts.h"
 
-#include "Enumerable.h"
+// #ifndef LINCPP_PARALLEL_DISABLE
+// #include "util/ParallelFor.h"
+// #endif
 
-#include "clauses/CastClause.h"
-#include "clauses/SelectClause.h"
+// #include "Enumerable.h"
 
-#include "Queriable.h" // last declared so that it knows all definitions
+#include "clauses/source/SourceIterator.h"
+#include "base/QueriableIterator.h" // last declared so that it knows all definitions
+
+#include "clauses/source/Source.h"
+
+#include "base/Queriable.h" // last declared so that it knows all definitions
