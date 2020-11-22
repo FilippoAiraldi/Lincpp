@@ -48,7 +48,7 @@ namespace Lincpp
         It _end;
         TPred _pred;
 
-        void MoveIterator(It &it, const It &end, TPred predicate)
+        static void MoveIterator(It &it, const It &end, TPred predicate)
         {
             while (it != end && !predicate(*it))
                 ++it;

@@ -6,64 +6,97 @@ namespace Lincpp
     struct Queriable
     {
     private:
+        using category = typename std::iterator_traits<TIterator>::iterator_category;
         template <typename AnyIterator>
         friend struct Queriable;
 
-    protected:
+    public:
         Queriable() = delete;
         Queriable(const Queriable<TIterator> &) = default;
         Queriable(Queriable<TIterator> &&) = default;
-
         Queriable(TIterator begin, TIterator end) : _begin(begin), _end(end) {}
 
     public:
         typedef typename std::iterator_traits<TIterator>::value_type TElement;
 
-        TIterator cbegin() const { return this->_begin; }
-        TIterator cend() const { return this->_end; }
+        const TIterator cbegin() const { return this->_begin; }
+        const TIterator cend() const { return this->_end; }
 
         template <typename TPredicate>
         bool All(TPredicate predicate) const
         {
             CHECK_PREDICATE(TPredicate, TElement);
-            for (TIterator it = _begin; it != _end; ++it)
-                if (!predicate(*it))
-                    return false;
-            return true;
+            return std::all_of(_begin, _end, predicate);
         }
 
         template <typename TPredicate>
         bool Any(TPredicate predicate) const
         {
             CHECK_PREDICATE(TPredicate, TElement);
-            for (TIterator it = _begin; it != _end; ++it)
-                if (predicate(*it))
-                    return true;
-            return false;
+            return std::any_of(_begin, _end, predicate);
         }
-        inline bool Any() const { return this->derived().Size() != 0; }
+
+        inline bool Any() const { return _begin != _end; }
+
+        double Average() const
+        {
+            CHECK_INTEGRAL_OR_FLOATING(TElement);
+            if (!this->Any())
+                throw InvalidOperation("sequence contains no element");
+            TIterator it = _begin;
+            double avg = *it;
+            ++it;
+            for (double k = 1.0; it != _end; ++it, k += 1.0)
+                avg = (avg * k + *it) / (k + 1.0);
+            return avg;
+        }
+
+        template <typename TFunc>
+        double Average(TFunc evaluator) const
+        {
+            CHECK_FUNC_WITH_ALLOWED_CONVERSION(TFunc, TElement, double);
+            if (!this->Any())
+                throw InvalidOperation("sequence contains no element");
+            TIterator it = _begin;
+            double avg = evaluator(*it);
+            ++it;
+            for (double k = 1.0; it != _end; ++it, k += 1.0)
+                avg = (avg * k + evaluator(*it)) / (k + 1.0);
+            return avg;
+        }
 
         template <typename TPredicate>
         std::size_t Count(TPredicate predicate) const
         {
             CHECK_PREDICATE(TPredicate, TElement);
-            std::size_t cnt = 0;
-            for (TIterator it = _begin; it != _end; ++it)
-                if (predicate(*it))
-                    cnt++;
-            return cnt;
+            return (std::size_t)std::count_if(_begin, _end, predicate);
         }
         constexpr std::size_t Count() const { return (std::size_t)std::distance(this->cbegin(), this->cend()); }
 
+        bool Contains(const TElement &value) const
+        {
+            for (TIterator it = _begin; it != _end; ++it)
+                if (*it == value)
+                    return true;
+            return false;
+        }
+
+        template <typename TComparer>
+        bool Contains(const TElement &value, TComparer comparer) const
+        {
+            CHECK_COMPARER(TComparer, TElement);
+            for (TIterator it = _begin; it != _end; ++it)
+                if (comparer(value, *it))
+                    return true;
+            return false;
+        }
+
         TElement ElementAt(std::size_t i) const
         {
-            using category = typename std::iterator_traits<TIterator>::iterator_category;
             if constexpr (std::is_same_v<category, std::random_access_iterator_tag>)
             {
-#ifndef LINCPP_NO_EXCEPTIONS
                 if (i >= this->Count())
                     throw OutOfRange("index outside range");
-#endif
                 return *(_begin + i);
             }
             else
@@ -72,12 +105,220 @@ namespace Lincpp
                 while (i--)
                 {
                     it++;
-#ifndef LINCPP_NO_EXCEPTIONS
                     if (it == _end)
                         throw OutOfRange("index outside range");
-#endif
                 }
                 return *it;
+            }
+        }
+
+        TElement ElementAtOrDefault(std::size_t i, const TElement &defaultValue) const
+        {
+            using category = typename std::iterator_traits<TIterator>::iterator_category;
+            if constexpr (std::is_same_v<category, std::random_access_iterator_tag>)
+            {
+                if (i >= this->Count())
+                    return defaultValue;
+                return *(_begin + i);
+            }
+            else
+            {
+                TIterator it = _begin;
+                while (i--)
+                {
+                    it++;
+                    if (it == _end)
+                        return defaultValue;
+                }
+                return *it;
+            }
+        }
+
+        template <typename TPredicate>
+        bool Empty(TPredicate predicate) const
+        {
+            CHECK_PREDICATE(TPredicate, TElement);
+            return std::none_of(_begin, _end, predicate);
+        }
+
+        inline bool Empty() const { return !this->Any(); }
+
+        TElement First() const
+        {
+            if (!this->Any())
+                throw InvalidOperation("sequence contains no element");
+            return *_begin;
+        }
+
+        template <typename TPredicate>
+        TElement First(TPredicate predicate) const
+        {
+            CHECK_PREDICATE(TPredicate, TElement);
+            if (!this->Any())
+                throw InvalidOperation("sequence contains no element");
+            for (TIterator it = _begin; it != _end; ++it)
+                if (predicate(*it))
+                    return *it;
+            throw InvalidOperation("no element satisfies the predicate");
+        }
+
+        TElement FirstOrDefault(const TElement &defaultValue) const
+        {
+            if (!this->Any())
+                return defaultValue;
+            return *_begin;
+        }
+
+        template <typename TPredicate>
+        TElement FirstOrDefault(TPredicate predicate, const TElement &defaultValue) const
+        {
+            CHECK_PREDICATE(TPredicate, TElement);
+            for (TIterator it = _begin; it != _end; ++it)
+                if (predicate(*it))
+                    return *it;
+            return defaultValue;
+        }
+
+        TElement Max() const
+        {
+            // TComparer: comparison which returns ​true if the first argument is less than the second.
+            if (!this->Any())
+                throw InvalidOperation("sequence contains no element");
+            return *std::max_element(_begin, _end);
+        }
+
+        template <typename TComparer>
+        TElement Max(TComparer comparer) const
+        {
+            // TComparer: comparison which returns ​true if the first argument is less than the second.
+            CHECK_COMPARER(TComparer, TElement);
+            if (!this->Any())
+                throw InvalidOperation("sequence contains no element");
+            return *std::max_element(_begin, _end, comparer);
+        }
+
+        TElement Min() const
+        {
+            // TComparer: comparison which returns ​true if the first argument is less than the second.
+            if (!this->Any())
+                throw InvalidOperation("sequence contains no element");
+            return *std::min_element(_begin, _end);
+        }
+
+        template <typename TComparer>
+        TElement Min(TComparer comparer) const
+        {
+            // TComparer: comparison which returns ​true if the first argument is less than the second.
+            CHECK_COMPARER(TComparer, TElement);
+            if (!this->Any())
+                throw InvalidOperation("sequence contains no element");
+            return *std::min_element(_begin, _end, comparer);
+        }
+
+        TElement Last() const
+        {
+            if (!this->Any())
+                throw InvalidOperation("sequence contains no element");
+            if constexpr (std::is_base_of_v<std::bidirectional_iterator_tag, category>)
+            {
+                TIterator it = _end;
+                return *(--it);
+            }
+            else
+            {
+                TIterator prev = _begin;
+                TIterator curr = _begin;
+                while (curr != _end)
+                    prev = curr++;
+                return *prev;
+            }
+        }
+
+        template <typename TPredicate>
+        TElement Last(TPredicate predicate) const
+        {
+            CHECK_PREDICATE(TPredicate, TElement);
+            if (!this->Any())
+                throw InvalidOperation("sequence contains no element");
+            if constexpr (std::is_base_of_v<std::bidirectional_iterator_tag, category>)
+            {
+                TIterator it = _end;
+                do
+                {
+                    if (it == _begin)
+                        throw InvalidOperation("no element satisfies the predicate");
+                    --it;
+                } while (!predicate(*it));
+                return *it;
+            }
+            else
+            {
+                bool found = false;
+                TIterator last = _begin;
+                TIterator it = _begin;
+                while (it != _end)
+                {
+                    if (predicate(*it))
+                    {
+                        last = it;
+                        found = true;
+                    }
+                    ++it;
+                }
+                if (found)
+                    return *last;
+                else
+                    throw InvalidOperation("no element satisfies the predicate");
+            }
+        }
+
+        TElement LastOrDefault(const TElement &defaultValue) const
+        {
+            if (!this->Any())
+                return defaultValue;
+            if constexpr (std::is_base_of_v<std::bidirectional_iterator_tag, category>)
+            {
+                TIterator it = _end;
+                return *(--it);
+            }
+            else
+            {
+                TIterator prev = _begin;
+                TIterator curr = _begin;
+                while (curr != _end)
+                    prev = curr++;
+                return *prev;
+            }
+        }
+
+        template <typename TPredicate>
+        TElement LastOrDefault(TPredicate predicate, const TElement &defaultValue) const
+        {
+            CHECK_PREDICATE(TPredicate, TElement);
+            if (!this->Any())
+                return defaultValue;
+            if constexpr (std::is_base_of_v<std::bidirectional_iterator_tag, category>)
+            {
+                TIterator it = _end;
+                do
+                {
+                    if (it == _begin)
+                        return defaultValue;
+                    --it;
+                } while (!predicate(*it));
+                return *it;
+            }
+            else
+            {
+                TElement res = defaultValue;
+                TIterator it = _begin;
+                while (it != _end)
+                {
+                    if (predicate(*it))
+                        res = *it;
+                    ++it;
+                }
+                return res;
             }
         }
 
@@ -98,8 +339,8 @@ namespace Lincpp
         }
 
     private:
-        TIterator _begin;
-        TIterator _end;
+        const TIterator _begin;
+        const TIterator _end;
 
         template <typename AnyElement>
         friend Queriable<typename std::initializer_list<AnyElement>::const_iterator> From(std::initializer_list<AnyElement> &&);
@@ -134,18 +375,6 @@ namespace Lincpp
 //         inline const Derived &derived() const { return *static_cast<const Derived *>(this); }
 
 //     public:
-//         template <typename TPredicate>
-//         bool Any(TPredicate predicate) const
-//         {
-//             CHECK_PREDICATE(TPredicate, TElement);
-//             TSize L = this->Size();
-//             for (TSize i = 0; i < L; ++i)
-//                 if (predicate(this->ElementAt(i)))
-//                     return true;
-//             return false;
-//         }
-//         inline bool Any() const { return this->derived().Size() != 0; }
-
 //         // TODO: make this a clause
 //         // Enumerable<TElement> Append(const TElement &element) const
 //         // {
@@ -153,31 +382,8 @@ namespace Lincpp
 //         //     tmp.push_back(element);
 //         //     return Enumerable<TElement>(tmp);
 //         // }
-
-//         double Average() const requires internal::Averageable<TElement>
-//         {
-//             TSize L = this->Size();
-//             if (L == 0)
-//                 throw std::range_error("sequence contains no element.");
-
-//             if constexpr (std::is_integral_v<TElement> || std::is_floating_point_v<TElement>)
-//             {
-//                 double avg = this->ElementAt(0);
-//                 for (TSize i = 1; i < L; ++i)
-//                     avg = (avg * (double)i + this->ElementAt(i)) / (double)(i + 1);
-//                 return avg;
-//             }
-//             else
-//             {
-//                 TElement tot = this->ElementAt(0);
-//                 for (TSize i = 1; i < L; ++i)
-//                     tot = tot + ElementAt(i);
-//                 return tot / L;
-//             }
-//         }
-
 //         // TODO: Cast
-
+//
 //         // TODO: make this a clause
 //         // Enumerable<TElement> Concat(const Enumerable<TElement> &other) const
 //         // {
@@ -191,26 +397,6 @@ namespace Lincpp
 //         //         res.data.push_back(other.ElementAt(i));
 //         //     return res;
 //         // }
-
-//         template <typename TPredicate>
-//         TSize Count(TPredicate predicate) const
-//         {
-//             CHECK_PREDICATE(TPredicate, TElement);
-//             TSize cnt = 0;
-//             TSize L = this->Count();
-//             for (TSize i = 0; i < L; ++i)
-//                 if (predicate(this->ElementAt(i)))
-//                     ++cnt;
-//             return cnt;
-//         }
-//         inline TSize Count() const { return this->Size(); }
-
-//         template <typename TPredicate>
-//         bool Empty(TPredicate predicate) const
-//         {
-//             return !this->Any<TPredicate>(predicate);
-//         }
-//         inline bool Empty() const { return !this->Any(); }
 
 //         // TODO: make this a clause
 //         // Enumerable<TElement> DefaultIfEmpty(TElement defaultValue) const

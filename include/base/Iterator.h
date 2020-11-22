@@ -5,13 +5,6 @@ namespace Lincpp
     // https://en.cppreference.com/w/cpp/iterator/iterator
     // https://stackoverflow.com/questions/9386266/overloading-the-operator-to-increment-an-iterator
 
-    // 1. make Iterator take a "Derived" template, so that it can static cast *this to Derived
-    // 2. put It typename inside the traits, cleaner than passing it as a template
-    //      2.1. requires ForwardDeclarations
-    //      2.2. requires use of traits
-    // 3. In each derived class, create a common interface MakeIterator function that creates
-    //      a new iterator from an original iterator
-
     template <typename It>
     struct Iterator /* : public std::iterator<typename std::iterator_traits<It>::iterator_category,
                                            typename std::iterator_traits<It>::value_type,

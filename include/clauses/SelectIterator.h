@@ -15,7 +15,7 @@ namespace Lincpp
 
         explicit SelectIterator(It iterator, TFunc selector) noexcept : Iterator<It>(iterator), _func(selector)
         {
-            CHECK_FUNC(TFunc, TInput, TReturn);
+            CHECK_FUNC_WITH_ALLOWED_CONVERSION(TFunc, TInput, TReturn);
         }
 
         // Forward iterator requirements
