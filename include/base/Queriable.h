@@ -2,41 +2,122 @@
 
 namespace Lincpp
 {
-    template <typename Derived>
+    template <typename TIterator>
     struct Queriable
     {
     private:
-        // all derived structs must register these traits
-        // typedef typename internal::traits<Derived>::Iterator DerivedIterator;
-        typedef typename internal::traits<Derived>::Element TElement;
+        template <typename AnyIterator>
+        friend struct Queriable;
 
     protected:
-        inline Derived &derived() { return *static_cast<Derived *>(this); }
-        inline const Derived &derived() const { return *static_cast<const Derived *>(this); }
+        Queriable() = delete;
+        Queriable(const Queriable<TIterator> &) = default;
+        Queriable(Queriable<TIterator> &&) = default;
 
-        // methods that all derived structs must implement
-        // inline DerivedIterator cbegin() const { return static_cast<DerivedIterator>(this->derived().cbegin()); }
-        // inline DerivedIterator cend() const { return static_cast<DerivedIterator>(this->derived().cend()); }
+        Queriable(TIterator begin, TIterator end) : _begin(begin), _end(end) {}
 
     public:
-        // template <typename TPredicate>
-        // bool All(TPredicate predicate) const
-        // {
-        //     CHECK_PREDICATE(TPredicate, TElement);
-        //     DerivedIterator end = this->cend();
-        //     for (DerivedIterator it = this->cbegin(); it != end; it++)
-        //         if (!predicate(*it))
-        //             return false;
-        //     return true;
-        // }
+        typedef typename std::iterator_traits<TIterator>::value_type TElement;
 
-        // TElement ElementAt(std::size_t i) const requires std::indirectly_readable<DerivedIterator> &&std::incrementable<DerivedIterator>
-        // {
-        //     return *this->cbegin().Move(this->cbegin(), this->cend(), i);
-        // }
+        TIterator cbegin() const { return this->_begin; }
+        TIterator cend() const { return this->_end; }
 
-        constexpr std::size_t Count() const { return std::distance(this->cbegin(), this->cend()); }
+        template <typename TPredicate>
+        bool All(TPredicate predicate) const
+        {
+            CHECK_PREDICATE(TPredicate, TElement);
+            for (TIterator it = _begin; it != _end; ++it)
+                if (!predicate(*it))
+                    return false;
+            return true;
+        }
+
+        template <typename TPredicate>
+        bool Any(TPredicate predicate) const
+        {
+            CHECK_PREDICATE(TPredicate, TElement);
+            for (TIterator it = _begin; it != _end; ++it)
+                if (predicate(*it))
+                    return true;
+            return false;
+        }
+        inline bool Any() const { return this->derived().Size() != 0; }
+
+        template <typename TPredicate>
+        std::size_t Count(TPredicate predicate) const
+        {
+            CHECK_PREDICATE(TPredicate, TElement);
+            std::size_t cnt = 0;
+            for (TIterator it = _begin; it != _end; ++it)
+                if (predicate(*it))
+                    cnt++;
+            return cnt;
+        }
+        constexpr std::size_t Count() const { return (std::size_t)std::distance(this->cbegin(), this->cend()); }
+
+        TElement ElementAt(std::size_t i) const
+        {
+            using category = typename std::iterator_traits<TIterator>::iterator_category;
+            if constexpr (std::is_same_v<category, std::random_access_iterator_tag>)
+            {
+#ifndef LINCPP_NO_EXCEPTIONS
+                if (i >= this->Count())
+                    throw OutOfRange("index outside range");
+#endif
+                return *(_begin + i);
+            }
+            else
+            {
+                TIterator it = _begin;
+                while (i--)
+                {
+                    it++;
+#ifndef LINCPP_NO_EXCEPTIONS
+                    if (it == _end)
+                        throw OutOfRange("index outside range");
+#endif
+                }
+                return *it;
+            }
+        }
+
+        template <typename TFunc, typename TReturn = typename std::result_of_t<TFunc(TElement)>>
+        Queriable<SelectIterator<TIterator, TFunc, TReturn>> Select(TFunc selector)
+        {
+            return Queriable<SelectIterator<TIterator, TFunc, TReturn>>(
+                SelectIterator<TIterator, TFunc, TReturn>(_begin, selector),
+                SelectIterator<TIterator, TFunc, TReturn>(_end, selector));
+        }
+
+        template <typename TPred>
+        Queriable<WhereIterator<TIterator, TPred>> Where(TPred predicate)
+        {
+            return Queriable<WhereIterator<TIterator, TPred>>(
+                WhereIterator<TIterator, TPred>(_begin, _end, predicate),
+                WhereIterator<TIterator, TPred>(_end, _end, predicate));
+        }
+
+    private:
+        TIterator _begin;
+        TIterator _end;
+
+        template <typename AnyElement>
+        friend Queriable<typename std::initializer_list<AnyElement>::const_iterator> From(std::initializer_list<AnyElement> &&);
+        template <typename AnyIterator>
+        friend Queriable<AnyIterator> From(AnyIterator, AnyIterator);
     };
+
+    template <typename TElement>
+    static Queriable<typename std::initializer_list<TElement>::const_iterator> From(std::initializer_list<TElement> &&list)
+    {
+        return Queriable<typename std::initializer_list<TElement>::const_iterator>(list.begin(), list.end());
+    }
+
+    template <typename TIterator>
+    static Queriable<TIterator> From(TIterator begin, TIterator end)
+    {
+        return Queriable<TIterator>(begin, end);
+    }
 } // namespace Lincpp
 
 // namespace Lincpp
@@ -53,17 +134,6 @@ namespace Lincpp
 //         inline const Derived &derived() const { return *static_cast<const Derived *>(this); }
 
 //     public:
-//         template <typename TPredicate>
-//         bool All(TPredicate predicate) const
-//         {
-//             CHECK_PREDICATE(TPredicate, TElement);
-//             TSize L = this->Size();
-//             for (TSize i = 0; i < L; ++i)
-//                 if (!predicate(this->ElementAt(i)))
-//                     return false;
-//             return true;
-//         }
-
 //         template <typename TPredicate>
 //         bool Any(TPredicate predicate) const
 //         {

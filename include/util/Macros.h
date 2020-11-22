@@ -1,6 +1,6 @@
 #pragma once
 
-// #define LINCPP_DEBUG
+// #define LINCPP_NO_EXCEPTIONS
 
 #define CHECK_FUNC(func, input, output)                                                                           \
     static_assert(std::is_invocable_v<func, input>, "function cannot be invoked with the specified input type."); \
