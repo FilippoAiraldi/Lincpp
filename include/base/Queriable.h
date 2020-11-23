@@ -73,22 +73,13 @@ namespace Lincpp
         }
         constexpr std::size_t Count() const { return (std::size_t)std::distance(this->cbegin(), this->cend()); }
 
-        bool Contains(const TElement &value) const
-        {
-            for (TIterator it = _begin; it != _end; ++it)
-                if (*it == value)
-                    return true;
-            return false;
-        }
+        bool Contains(const TElement &value) const { return std::find(_begin, _end, value) != _end; }
 
-        template <typename TComparer>
-        bool Contains(const TElement &value, TComparer comparer) const
+        template <typename TPredicate>
+        bool Contains(TPredicate predicate) const
         {
-            CHECK_COMPARER(TComparer, TElement);
-            for (TIterator it = _begin; it != _end; ++it)
-                if (comparer(value, *it))
-                    return true;
-            return false;
+            CHECK_PREDICATE(TPredicate, TElement);
+            return std::find_if(_begin, _end, predicate) != _end;
         }
 
         TElement ElementAt(std::size_t i) const
@@ -323,7 +314,7 @@ namespace Lincpp
         }
 
         template <typename TFunc, typename TReturn = typename std::result_of_t<TFunc(TElement)>>
-        Queriable<SelectIterator<TIterator, TFunc, TReturn>> Select(TFunc selector)
+        Queriable<SelectIterator<TIterator, TFunc, TReturn>> Select(TFunc selector) const
         {
             return Queriable<SelectIterator<TIterator, TFunc, TReturn>>(
                 SelectIterator<TIterator, TFunc, TReturn>(_begin, selector),
@@ -331,7 +322,7 @@ namespace Lincpp
         }
 
         template <typename TPred>
-        Queriable<WhereIterator<TIterator, TPred>> Where(TPred predicate)
+        Queriable<WhereIterator<TIterator, TPred>> Where(TPred predicate) const
         {
             return Queriable<WhereIterator<TIterator, TPred>>(
                 WhereIterator<TIterator, TPred>(_begin, _end, predicate),

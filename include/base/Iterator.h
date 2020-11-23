@@ -81,7 +81,7 @@ namespace Lincpp
     };
 
     template <typename It>
-    inline Iterator<It>::difference_type operator-(const Iterator<It> &lhs, const Iterator<It> &rhs) noexcept { return lhs.base() - rhs.base(); }
+    inline typename Iterator<It>::difference_type operator-(const Iterator<It> &lhs, const Iterator<It> &rhs) noexcept { return lhs.base() - rhs.base(); }
 
     template <typename It>
     inline bool operator==(const Iterator<It> &lhs, const Iterator<It> &rhs) noexcept { return lhs.base() == rhs.base(); }
