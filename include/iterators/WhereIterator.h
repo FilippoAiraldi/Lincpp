@@ -21,6 +21,14 @@ namespace Lincpp
             MoveIterator(this->_current, this->_end, this->_pred);
         }
 
+        WhereIterator<It, TPred> &operator=(const WhereIterator<It, TPred> &other)
+        {
+            this->_current = other._current;
+            this->_end = other._end;
+            // this->_pred = other._pred; // cannot copy lambda, but should be equal anyway
+            return *this;
+        };
+
         // Forward iterator requirements
         reference operator*()
         {
@@ -46,7 +54,7 @@ namespace Lincpp
 
     private:
         It _end;
-        TPred _pred;
+        const TPred _pred;
 
         static void MoveIterator(It &it, const It &end, TPred predicate)
         {

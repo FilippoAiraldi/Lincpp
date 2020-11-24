@@ -147,10 +147,11 @@ namespace Lincpp
             CHECK_PREDICATE(TPredicate, TElement);
             if (!this->Any())
                 throw InvalidOperation("sequence contains no element");
-            for (TIterator it = _begin; it != _end; ++it)
-                if (predicate(*it))
-                    return *it;
-            throw InvalidOperation("no element satisfies the predicate");
+
+            TIterator res = std::find_if(_begin, _end, predicate);
+            if (res == _end)
+                throw InvalidOperation("no element satisfies the predicate");
+            return *res;
         }
 
         TElement FirstOrDefault(const TElement &defaultValue) const
@@ -164,10 +165,10 @@ namespace Lincpp
         TElement FirstOrDefault(TPredicate predicate, const TElement &defaultValue) const
         {
             CHECK_PREDICATE(TPredicate, TElement);
-            for (TIterator it = _begin; it != _end; ++it)
-                if (predicate(*it))
-                    return *it;
-            return defaultValue;
+            TIterator res = std::find_if(_begin, _end, predicate);
+            if (res == _end)
+                return defaultValue;
+            return *res;
         }
 
         TElement Max() const
@@ -220,7 +221,13 @@ namespace Lincpp
                 TIterator prev = _begin;
                 TIterator curr = _begin;
                 while (curr != _end)
-                    prev = curr++;
+                {
+                    prev = curr;
+                    ++curr;
+                    // Cannot be done in one line because post increment returns the base class.
+                    // Could be fixed with the Curiously Recursive Template Pattern; if necessary
+                    // I'll upgrade the base class to it, I guess.
+                }
                 return *prev;
             }
         }
@@ -277,7 +284,13 @@ namespace Lincpp
                 TIterator prev = _begin;
                 TIterator curr = _begin;
                 while (curr != _end)
-                    prev = curr++;
+                {
+                    prev = curr;
+                    ++curr;
+                    // Cannot be done in one line because post increment returns the base class.
+                    // Could be fixed with the Curiously Recursive Template Pattern; if necessary
+                    // I'll upgrade the base class to it, I guess.
+                }
                 return *prev;
             }
         }

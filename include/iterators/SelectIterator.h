@@ -18,6 +18,13 @@ namespace Lincpp
             CHECK_FUNC_WITH_ALLOWED_CONVERSION(TFunc, TInput, TReturn);
         }
 
+        SelectIterator<It, TFunc, TReturn> &operator=(const SelectIterator<It, TFunc, TReturn> &other)
+        {
+            this->_current = other._current;
+            // this->_func = other._func; // cannot copy lambda, but should be equal anyway
+            return *this;
+        };
+
         // Forward iterator requirements
         value_type operator*() { return this->_func(*(this->_current)); }
 
@@ -25,6 +32,6 @@ namespace Lincpp
         // Random access iterator requirements
 
     private:
-        TFunc _func;
+        const TFunc _func;
     };
 } // namespace Lincpp
