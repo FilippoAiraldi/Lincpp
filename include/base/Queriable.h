@@ -221,13 +221,7 @@ namespace Lincpp
                 TIterator prev = _begin;
                 TIterator curr = _begin;
                 while (curr != _end)
-                {
-                    prev = curr;
-                    ++curr;
-                    // Cannot be done in one line because post increment returns the base class.
-                    // Could be fixed with the Curiously Recursive Template Pattern; if necessary
-                    // I'll upgrade the base class to it, I guess.
-                }
+                    prev = curr++;
                 return *prev;
             }
         }
@@ -284,13 +278,7 @@ namespace Lincpp
                 TIterator prev = _begin;
                 TIterator curr = _begin;
                 while (curr != _end)
-                {
-                    prev = curr;
-                    ++curr;
-                    // Cannot be done in one line because post increment returns the base class.
-                    // Could be fixed with the Curiously Recursive Template Pattern; if necessary
-                    // I'll upgrade the base class to it, I guess.
-                }
+                    prev = curr++;
                 return *prev;
             }
         }

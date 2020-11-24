@@ -2,8 +2,22 @@
 
 namespace Lincpp
 {
+    namespace internal
+    {
+        template <typename It, typename TFunc, typename TReturn>
+        struct traits<SelectIterator<It, TFunc, TReturn>>
+        {
+            typedef It iterator_type;
+            typedef typename std::iterator_traits<It>::iterator_category iterator_category;
+            typedef typename std::iterator_traits<It>::difference_type difference_type;
+            typedef TReturn value_type;
+            typedef TReturn &reference;
+            typedef TReturn *pointer;
+        };
+    } // namespace internal
+
     template <typename It, typename TFunc, typename TReturn>
-    struct SelectIterator : public Iterator<It>
+    struct SelectIterator : public Iterator<SelectIterator<It, TFunc, TReturn>>
     {
     public:
         typedef typename std::iterator_traits<It>::iterator_category iterator_category;
@@ -11,12 +25,14 @@ namespace Lincpp
         typedef TReturn value_type;
         typedef TReturn &reference;
         typedef TReturn *pointer;
-        typedef typename std::iterator_traits<It>::value_type TInput;
 
-        explicit SelectIterator(It iterator, TFunc selector) noexcept : Iterator<It>(iterator), _func(selector)
+        explicit SelectIterator(It iterator, TFunc selector) noexcept : Iterator<SelectIterator<It, TFunc, TReturn>>(iterator), _func(selector)
         {
+            typedef typename std::iterator_traits<It>::value_type TInput;
             CHECK_FUNC_WITH_ALLOWED_CONVERSION(TFunc, TInput, TReturn);
         }
+
+        SelectIterator<It, TFunc, TReturn> Clone() const { return SelectIterator<It, TFunc, TReturn>(this->_current, this->_func); }
 
         SelectIterator<It, TFunc, TReturn> &operator=(const SelectIterator<It, TFunc, TReturn> &other)
         {
