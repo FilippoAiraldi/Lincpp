@@ -6,7 +6,11 @@ namespace Lincpp
     struct Queriable
     {
     private:
-        using category = typename std::iterator_traits<TIterator>::iterator_category;
+        using _category = typename std::iterator_traits<TIterator>::iterator_category;
+        using is_iterator_forw = std::is_base_of<std::forward_iterator_tag, _category>;
+        using is_iterator_bidi = std::is_base_of<std::bidirectional_iterator_tag, _category>;
+        using is_iterator_rai = std::is_base_of<std::random_access_iterator_tag, _category>;
+
         template <typename AnyIterator>
         friend struct Queriable;
 
@@ -19,8 +23,8 @@ namespace Lincpp
     public:
         typedef typename std::iterator_traits<TIterator>::value_type TElement;
 
-        const TIterator cbegin() const { return this->_begin; }
-        const TIterator cend() const { return this->_end; }
+        TIterator cbegin() const { return this->_begin; }
+        TIterator cend() const { return this->_end; }
 
         template <typename TPredicate>
         bool All(TPredicate predicate) const
@@ -54,6 +58,7 @@ namespace Lincpp
         template <typename TFunc>
         double Average(TFunc evaluator) const
         {
+            CHECK_INTEGRAL_OR_FLOATING(TElement);
             CHECK_FUNC_WITH_ALLOWED_CONVERSION(TFunc, TElement, double);
             if (!this->Any())
                 throw InvalidOperation("sequence contains no element");
@@ -84,7 +89,7 @@ namespace Lincpp
 
         TElement ElementAt(std::size_t i) const
         {
-            if constexpr (std::is_same_v<category, std::random_access_iterator_tag>)
+            if constexpr (is_iterator_rai::value)
             {
                 if (i >= this->Count())
                     throw OutOfRange("index outside range");
@@ -105,8 +110,7 @@ namespace Lincpp
 
         TElement ElementAtOrDefault(std::size_t i, const TElement &defaultValue) const
         {
-            using category = typename std::iterator_traits<TIterator>::iterator_category;
-            if constexpr (std::is_same_v<category, std::random_access_iterator_tag>)
+            if constexpr (is_iterator_rai::value)
             {
                 if (i >= this->Count())
                     return defaultValue;
@@ -211,7 +215,7 @@ namespace Lincpp
         {
             if (!this->Any())
                 throw InvalidOperation("sequence contains no element");
-            if constexpr (std::is_base_of_v<std::bidirectional_iterator_tag, category>)
+            if constexpr (is_iterator_bidi::value)
             {
                 TIterator it = _end;
                 return *(--it);
@@ -232,7 +236,7 @@ namespace Lincpp
             CHECK_PREDICATE(TPredicate, TElement);
             if (!this->Any())
                 throw InvalidOperation("sequence contains no element");
-            if constexpr (std::is_base_of_v<std::bidirectional_iterator_tag, category>)
+            if constexpr (is_iterator_bidi::value)
             {
                 TIterator it = _end;
                 do
@@ -268,7 +272,7 @@ namespace Lincpp
         {
             if (!this->Any())
                 return defaultValue;
-            if constexpr (std::is_base_of_v<std::bidirectional_iterator_tag, category>)
+            if constexpr (is_iterator_bidi::value)
             {
                 TIterator it = _end;
                 return *(--it);
@@ -289,7 +293,7 @@ namespace Lincpp
             CHECK_PREDICATE(TPredicate, TElement);
             if (!this->Any())
                 return defaultValue;
-            if constexpr (std::is_base_of_v<std::bidirectional_iterator_tag, category>)
+            if constexpr (is_iterator_bidi::value)
             {
                 TIterator it = _end;
                 do
@@ -314,6 +318,27 @@ namespace Lincpp
             }
         }
 
+        double Sum() const
+        {
+            CHECK_INTEGRAL_OR_FLOATING(TElement);
+            double s = 0.0;
+            for (TIterator it = _begin; it != _end; ++it)
+                s += *it;
+            return s;
+        }
+
+        template <typename TFunc>
+        double Sum(TFunc evaluator) const
+        {
+            CHECK_INTEGRAL_OR_FLOATING(TElement);
+            CHECK_FUNC_WITH_ALLOWED_CONVERSION(TFunc, TElement, double);
+            double s = 0.0;
+            for (TIterator it = _begin; it != _end; ++it)
+                s += evaluator(*it);
+            return s;
+        }
+
+    public:
         template <typename TFunc, typename TReturn = typename std::result_of_t<TFunc(TElement)>>
         Queriable<SelectIterator<TIterator, TFunc, TReturn>> Select(TFunc selector) const
         {
@@ -326,8 +351,8 @@ namespace Lincpp
         Queriable<WhereIterator<TIterator, TPred>> Where(TPred predicate) const
         {
             return Queriable<WhereIterator<TIterator, TPred>>(
-                WhereIterator<TIterator, TPred>(_begin, _end, predicate),
-                WhereIterator<TIterator, TPred>(_end, _end, predicate));
+                WhereIterator<TIterator, TPred>(_begin, _begin, _end, predicate),
+                WhereIterator<TIterator, TPred>(_end, _begin, _end, predicate));
         }
 
     private:

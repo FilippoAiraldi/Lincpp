@@ -18,12 +18,6 @@ namespace Lincpp
     struct Iterator
     {
     public:
-        // typedef typename std::iterator_traits<It>::iterator_category iterator_category;
-        // typedef typename std::iterator_traits<It>::difference_type difference_type;
-        // typedef typename std::iterator_traits<It>::value_type value_type;
-        // typedef typename std::iterator_traits<It>::reference reference;
-        // typedef typename std::iterator_traits<It>::pointer pointer;
-        // typedef typename internal::traits<Derived>::iterator_category iterator_category;
         typedef typename internal::traits<Derived>::iterator_type It;
         typedef typename internal::traits<Derived>::iterator_category iterator_category;
         typedef typename internal::traits<Derived>::difference_type difference_type;
@@ -32,6 +26,10 @@ namespace Lincpp
         typedef typename internal::traits<Derived>::pointer pointer;
 
     protected:
+        static constexpr bool IsForwardIt = std::is_base_of_v<std::forward_iterator_tag, iterator_category>;
+        static constexpr bool IsBidirectionalIt = std::is_base_of_v<std::bidirectional_iterator_tag, iterator_category>;
+        static constexpr bool IsRandomAccessIt = std::is_base_of_v<std::random_access_iterator_tag, iterator_category>;
+
         inline Derived &derived() { return *static_cast<Derived *>(this); }
         inline const Derived &derived() const { return *static_cast<const Derived *>(this); }
 
@@ -48,53 +46,61 @@ namespace Lincpp
         value_type operator*() const { return *_current; } // rather than reference
         Derived &operator++() noexcept                     // pre
         {
+            static_assert(IsForwardIt, "pre-increment operator: iterator is not a forward.");
             ++_current;
             return *static_cast<Derived *>(this);
         }
         Derived operator++(int) noexcept // post
         {
+            static_assert(IsForwardIt, "post-increment operator: iterator is not a forward.");
             Derived res = this->derived().Clone();
             ++_current;
             return res;
         }
 
         // Bidirectional iterator requirements
-        value_type
-        operator[](difference_type n) const // rather than reference
-        {
-            return _current[n];
-        }
         Derived &operator--() noexcept // pre
         {
+            static_assert(IsBidirectionalIt, "pre-decrement operator: iterator is not bidirectional iterator.");
             --_current;
             return *static_cast<Derived *>(this);
         }
         Derived operator--(int) noexcept // post
         {
+            static_assert(IsBidirectionalIt, "post-decrement operator: iterator is not bidirectional iterator.");
             Derived res = this->derived().Clone();
             --_current;
             return res;
         }
 
         // Random access iterator requirements
+        value_type operator[](difference_type n) const // rather than reference
+        {
+            static_assert(IsRandomAccessIt, "operator[]: iterator is not a random access.");
+            return _current[n];
+        }
         Derived &operator+=(difference_type n) noexcept
         {
+            static_assert(IsRandomAccessIt, "operator+=: iterator is not a random access.");
             _current += n;
             return *static_cast<Derived *>(this);
         }
         Derived operator+(difference_type n) const noexcept
         {
+            static_assert(IsRandomAccessIt, "operator+: iterator is not a random access.");
             Derived res = this->derived().Clone();
             res.Base() += n;
             return res;
         }
         Derived &operator-=(difference_type n) noexcept
         {
+            static_assert(IsRandomAccessIt, "operator-=: iterator is not a random access.");
             _current -= n;
             return *static_cast<Derived *>(this);
         }
-        Iterator<Derived> operator-(difference_type n) const noexcept
+        Derived operator-(difference_type n) const noexcept
         {
+            static_assert(IsRandomAccessIt, "operator-: iterator is not a random access.");
             Derived res = this->derived().Clone();
             res.Base() -= n;
             return res;

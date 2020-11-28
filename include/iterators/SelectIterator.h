@@ -4,6 +4,7 @@ namespace Lincpp
 {
     namespace internal
     {
+        // specialization used by base Iterator struct to get traits of derived
         template <typename It, typename TFunc, typename TReturn>
         struct traits<SelectIterator<It, TFunc, TReturn>>
         {
@@ -32,8 +33,10 @@ namespace Lincpp
             CHECK_FUNC_WITH_ALLOWED_CONVERSION(TFunc, TInput, TReturn);
         }
 
+        // necessary to provide this method for base Iterator struct
         SelectIterator<It, TFunc, TReturn> Clone() const { return SelectIterator<It, TFunc, TReturn>(this->_current, this->_func); }
 
+        // necessary to provide this operator for base Iterator struct
         SelectIterator<It, TFunc, TReturn> &operator=(const SelectIterator<It, TFunc, TReturn> &other)
         {
             this->_current = other._current;
