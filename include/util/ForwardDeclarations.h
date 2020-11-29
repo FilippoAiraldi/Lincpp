@@ -16,4 +16,10 @@ namespace Lincpp
 
     template <typename It, typename TPred>
     struct WhereIterator;
+
+    template <typename TIterator>
+    struct Queriable;
+
+    template <typename TIterator>
+    struct Orderable;
 } // namespace Lincpp

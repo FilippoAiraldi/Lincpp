@@ -23,6 +23,8 @@ namespace Lincpp
     public:
         typedef typename std::iterator_traits<TIterator>::value_type TElement;
 
+        TIterator begin() const { return this->_begin; }
+        TIterator end() const { return this->_end; }
         TIterator cbegin() const { return this->_begin; }
         TIterator cend() const { return this->_end; }
 
@@ -339,6 +341,13 @@ namespace Lincpp
         }
 
     public:
+        template <typename TComparer>
+        Orderable<TIterator> OrderBy(TComparer comparer)
+        {
+            // TComparer: comparison which returns ​true if the first argument is less than the second.
+            return Orderable<TIterator>(_begin, _end, comparer);
+        }
+
         template <typename TFunc, typename TReturn = typename std::result_of_t<TFunc(TElement)>>
         Queriable<SelectIterator<TIterator, TFunc, TReturn>> Select(TFunc selector) const
         {
